@@ -1,7 +1,7 @@
 const express = require("express");
 const app = express();
 const http = require("http");
-
+const serverless = require("serverless-http");
 //for https ssl certification
 // const https = require("https");
 // const fs = require("fs");
@@ -126,3 +126,5 @@ const HOST = "192.168.1.135";
 server.listen(PORT, HOST, () => {
   console.log("server is listening on IP : " + HOST + " and port: " + PORT);
 });
+
+module.exports.handler = serverless(app);
