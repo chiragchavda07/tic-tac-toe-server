@@ -2,25 +2,23 @@ const express = require("express");
 const app = express();
 const http = require("http");
 const serverless = require("serverless-http");
-//for https ssl certification
-// const https = require("https");
-// const fs = require("fs");
-// const options = {
-//   key: fs.readFileSync("key.pem"),
-//   cert: fs.readFileSync("cert.pem"),
-// };
-// const server = https.createServer();
-
 const server = http.createServer(app);
 const { Server } = require("socket.io");
 const cors = require("cors");
-app.use(cors());
 const io = new Server(server, {
   cors: {
     origin: "*",
     methods: ["GET", "POST"],
   },
 });
+const corsOptions = {
+  origin: "http://localhost:3000", // Replace with your frontend's URL
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+  credentials: true,
+  optionsSuccessStatus: 204,
+};
+
+app.use(cors(corsOptions));
 const GAMEBOARD_FOR_O = [0, 0, 0, 0, 0, 0, 0, 0, 0];
 const GAMEBOARD_FOR_X = [0, 0, 0, 0, 0, 0, 0, 0, 0];
 
