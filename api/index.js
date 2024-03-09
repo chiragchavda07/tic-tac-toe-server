@@ -115,10 +115,8 @@ io.on("connection", (socket) => {
 });
 
 const PORT = 3001;
-const HOST = "127.0.0.1";
-// const HOST = "0.0.0.0";
-server.listen(PORT, HOST, () => {
-  console.log("server is listening on IP : " + HOST + " and port: " + PORT);
+server.listen(PORT, () => {
+  console.log("server is listening on port: " + PORT);
 });
 
 module.exports = app;
