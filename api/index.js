@@ -5,19 +5,15 @@ const serverless = require("serverless-http");
 const server = http.createServer(app);
 const { Server } = require("socket.io");
 const cors = require("cors");
-const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"],
-  },
-});
 const corsOptions = {
   origin: "http://localhost:3000", // Replace with your frontend's URL
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   credentials: true,
   optionsSuccessStatus: 204,
 };
-
+const io = new Server(server, {
+  cors: corsOptions,
+});
 app.use(cors(corsOptions));
 const GAMEBOARD_FOR_O = [0, 0, 0, 0, 0, 0, 0, 0, 0];
 const GAMEBOARD_FOR_X = [0, 0, 0, 0, 0, 0, 0, 0, 0];
