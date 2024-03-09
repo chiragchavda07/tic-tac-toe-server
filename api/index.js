@@ -17,6 +17,10 @@ const io = new Server(server, {
 });
 app.use(cors(corsOptions));
 
+app.get("/", (req, res) => {
+  res.json({ message: "Hello from serverless!" });
+});
+
 const GAMEBOARD_FOR_O = [0, 0, 0, 0, 0, 0, 0, 0, 0];
 const GAMEBOARD_FOR_X = [0, 0, 0, 0, 0, 0, 0, 0, 0];
 
