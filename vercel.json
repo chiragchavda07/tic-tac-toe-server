@@ -1,7 +1,16 @@
 {
   "version": 2,
-  "rewrites": [
-    { "source": "/socket.io/(.*)", "destination": "/api/socket.io/$1" },
-    { "source": "/(.*)", "destination": "/api/$1" }
+  "builds": [
+    {
+      "src": "./index.js",
+      "use": "@now/node-server"
+    }
+  ],
+  "routes": [
+    { "handle": "filesystem" },
+    {
+      "src": "/.*",
+      "dest": "index.js"
+    }
   ]
 }
