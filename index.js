@@ -18,7 +18,7 @@ const io = new Server(server, {
 app.use(cors(corsOptions));
 
 app.get("/", (req, res) => {
-  res.json({ message: "Hello from serverless!" });
+  res.json({ message: "Hello from chirag" });
 });
 
 // const GAMEBOARD_FOR_O = [0, 0, 0, 0, 0, 0, 0, 0, 0];
@@ -116,10 +116,10 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     console.log(`User ${socket.id} disconnected`);
-    const roomId = Object.keys(roomClients).find(room=>{
+    const roomId = Object.keys(roomClients).find((room) => {
       return roomClients[room].client_id.includes(socket.id);
     });
-    if(!roomId){
+    if (!roomId) {
       return;
     }
     roomClients[roomId].client_id = roomClients[roomId].client_id.filter(
