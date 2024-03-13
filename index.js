@@ -21,8 +21,8 @@ app.get("/", (req, res) => {
   res.json({ message: "Hello from serverless!" });
 });
 
-const GAMEBOARD_FOR_O = [0, 0, 0, 0, 0, 0, 0, 0, 0];
-const GAMEBOARD_FOR_X = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+// const GAMEBOARD_FOR_O = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+// const GAMEBOARD_FOR_X = [0, 0, 0, 0, 0, 0, 0, 0, 0];
 
 const MAX_CLIENTS_PER_ROOM = 2;
 let roomClients = {};
@@ -54,11 +54,11 @@ function check_particular_array(a, index) {
   }
   return false;
 }
-function checkWinner(symbol, index, socket_id) {
+function checkWinner(roomId, symbol, index) {
   if (symbol === "X") {
-    return check_particular_array(GAMEBOARD_FOR_X, index);
+    return check_particular_array(roomClients[roomId].GAMEBOARD_FOR_X, index);
   } else {
-    return check_particular_array(GAMEBOARD_FOR_O, index);
+    return check_particular_array(roomClients[roomId].GAMEBOARD_FOR_O, index);
   }
 }
 
@@ -67,11 +67,14 @@ io.on("connection", (socket) => {
   socket.on("join_room", (room) => {
     if (!roomClients[room]) {
       //handle when there are no clients joined for particular room id
-      roomClients[room] = []; //it will create room with empty clients
+      roomClients[room] = {};
+      roomClients[room].client_id = []; //it will create room with empty clients
+      roomClients[room].GAMEBOARD_FOR_O = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+      roomClients[room].GAMEBOARD_FOR_X = [0, 0, 0, 0, 0, 0, 0, 0, 0];
     }
-    if (roomClients[room].length < MAX_CLIENTS_PER_ROOM) {
+    if (roomClients[room].client_id.length < MAX_CLIENTS_PER_ROOM) {
       socket.join(room); //adding the user to particular room
-      roomClients[room].push(socket.id); //adding the user id to room
+      roomClients[room].client_id.push(socket.id);
 
       console.log(`User ${socket.id} joined room ${room}`);
       var symbol = symbols[symbol_assigning_index];
@@ -96,13 +99,15 @@ io.on("connection", (socket) => {
     console.log("player_move");
     console.log(data.info.index);
     if (data.info.symbol === "X") {
-      GAMEBOARD_FOR_X[data.info.index] = 1;
+      roomClients[data.roomID].GAMEBOARD_FOR_X[data.info.index] = 1;
+      // GAMEBOARD_FOR_X[data.info.index] = 1;
     } else {
-      GAMEBOARD_FOR_O[data.info.index] = 1;
+      roomClients[data.roomID].GAMEBOARD_FOR_O[data.info.index] = 1;
+      // GAMEBOARD_FOR_O[data.info.index] = 1;
     }
     // io.to(roomClients[data.roomID]).emit("player_turn", data.info);
     socket.to(data.roomID).emit("player_turn", data.info);
-    if (checkWinner(data.info.symbol, data.info.index, data.info.socket_id)) {
+    if (checkWinner(data.roomID, data.info.symbol, data.info.index)) {
       //if player with socket id= socket_id wins
       await io.to(data.roomID).emit("game_over", data.info.socket_id);
       socket.disconnect();
@@ -111,11 +116,18 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     console.log(`User ${socket.id} disconnected`);
-    GAMEBOARD_FOR_O.splice(0, GAMEBOARD_FOR_O.length);
-    GAMEBOARD_FOR_X.splice(0, GAMEBOARD_FOR_X.length);
-    console.log("GAMEBOARD_FOR_O : ", GAMEBOARD_FOR_O);
-    console.log("GAMEBOARD_FOR_X : ", GAMEBOARD_FOR_X);
-    roomClients = {};
+    const roomId = Object.keys(roomClients).find(room=>{
+      return roomClients[room].client_id.includes(socket.id);
+    });
+    if(!roomId){
+      return;
+    }
+    roomClients[roomId].client_id = roomClients[roomId].client_id.filter(
+      (id) => id !== socket.id
+    );
+    roomClients[roomId].GAMEBOARD_FOR_O.splice(0, 9);
+    roomClients[roomId].GAMEBOARD_FOR_X.splice(0, 9);
+    roomClients[roomId].client_id = [];
     console.log("roomClients : ", roomClients);
   });
 });
