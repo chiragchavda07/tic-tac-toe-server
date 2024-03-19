@@ -29,7 +29,7 @@ let roomClients = {};
 const symbols = ["O", "X"];
 var symbol_assigning_index = 0;
 
-function check_particular_array(a, index) {
+const check_particular_array = (a, index) => {
   switch (index) {
     case 0:
       return (a[1] && a[2]) || (a[3] && a[6]) || (a[4] && a[8]); //returns true if any case is true, that is player is winner
@@ -53,7 +53,7 @@ function check_particular_array(a, index) {
       return (a[2] && a[5]) || (a[6] && a[7]) || (a[0] && a[4]);
   }
   return false;
-}
+};
 function checkWinner(roomId, symbol, index) {
   if (symbol === "X") {
     return check_particular_array(roomClients[roomId].GAMEBOARD_FOR_X, index);
@@ -61,10 +61,15 @@ function checkWinner(roomId, symbol, index) {
     return check_particular_array(roomClients[roomId].GAMEBOARD_FOR_O, index);
   }
 }
-
+function sendSymbolToNewJoiningClient(socket) {
+  var symbol = symbols[symbol_assigning_index];
+  console.log(symbol);
+  symbol_assigning_index = (symbol_assigning_index + 1) % 2;
+  socket.emit("your_symbol", symbol);
+}
 io.on("connection", (socket) => {
   console.log(`A new user connected with id: ${socket.id}`);
-  socket.on("join_room", (room) => {
+  socket.on("join_room", async (room) => {
     if (!roomClients[room]) {
       //handle when there are no clients joined for particular room id
       roomClients[room] = {};
@@ -75,48 +80,40 @@ io.on("connection", (socket) => {
     if (roomClients[room].client_id.length < MAX_CLIENTS_PER_ROOM) {
       socket.join(room); //adding the user to particular room
       roomClients[room].client_id.push(socket.id);
-
       console.log(`User ${socket.id} joined room ${room}`);
-      var symbol = symbols[symbol_assigning_index];
-      console.log(symbol);
-      symbol_assigning_index = (symbol_assigning_index + 1) % 2;
-      socket.emit("your_symbol", symbol);
+      sendSymbolToNewJoiningClient(socket);
+      if (roomClients[room].client_id.length === 2) {
+        console.log("two ids in the room");
+        var initial_turn_id =
+          roomClients[room].client_id[Math.floor(Math.random() * 2)];
+        console.log(`Room no: ${room}`);
+        await io.to(room).emit("start_game", initial_turn_id);
+      }
     } else {
+      console.log(`Room ${room} is full`);
       socket.emit("room_full");
       socket.disconnect();
-      console.log(`Room ${room} is full`);
     }
   });
-
-  // socket.on("send_message", (data) => {
-  //   var symbol = symbols[symbol_assigning_index];
-  //   console.log(symbol);
-  //   symbol_assigning_index = (symbol_assigning_index + 1) % 2;
-  //   socket.emit("your_symbol", symbol);
-  //   console.log(data);
-  // });
   socket.on("player_move", async (data) => {
-    console.log("player_move");
-    console.log(data.info.index);
-    if (data.info.symbol === "X") {
-      roomClients[data.roomID].GAMEBOARD_FOR_X[data.info.index] = 1;
+    if (data.symbol === "X") {
+      roomClients[data.roomID].GAMEBOARD_FOR_X[data.index] = 1;
       // GAMEBOARD_FOR_X[data.info.index] = 1;
     } else {
-      roomClients[data.roomID].GAMEBOARD_FOR_O[data.info.index] = 1;
+      roomClients[data.roomID].GAMEBOARD_FOR_O[data.index] = 1;
       // GAMEBOARD_FOR_O[data.info.index] = 1;
     }
-    // io.to(roomClients[data.roomID]).emit("player_turn", data.info);
-    socket.to(data.roomID).emit("player_turn", data.info);
-    if (checkWinner(data.roomID, data.info.symbol, data.info.index)) {
-      //if player with socket id= socket_id wins
-      await io.to(data.roomID).emit("game_over", data.info.socket_id);
+    if (checkWinner(data.roomID, data.symbol, data.index)) {
+      await io.to(data.roomID).emit("game_over", data.socket_id);
       socket.disconnect();
+      return;
     }
+    socket.to(data.roomID).emit("player_turn", data);
   });
 
   socket.on("disconnect", () => {
     console.log(`User ${socket.id} disconnected`);
-    const roomId = Object.keys(roomClients).find((room) => {
+    var roomId = Object.keys(roomClients).find((room) => {
       return roomClients[room].client_id.includes(socket.id);
     });
     if (!roomId) {
